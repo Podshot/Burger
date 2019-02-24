@@ -25,6 +25,7 @@ import os
 import sys
 import getopt
 import urllib
+from argparse import ArgumentParser
 
 try:
     import json
@@ -80,26 +81,31 @@ def import_toppings():
     return toppings
 
 if __name__ == "__main__":
-    try:
-        opts, args = getopt.gnu_getopt(
-            sys.argv[1:],
-            "t:o:vu:p:dlcs:",
-            [
-                "toppings=",
-                "output=",
-                "verbose",
-                "username=",
-                "password=",
-                "download",
-                "list",
-                "compact",
-                "url=",
-                "source="
-            ]
-        )
-    except getopt.GetoptError as err:
-        print(str(err))
-        sys.exit(1)
+    parser = ArgumentParser()
+    parser.add_argument("-t", "--toppings", nargs='*')
+    parser.add_argument("-o", '--output', action="store")
+    parser.add_argument("-d", "--download", nargs="?")
+    # try:
+    #     opts, args = getopt.gnu_getopt(
+    #         sys.argv[1:],
+    #         "t:o:vu:p:dlcs:",
+    #         [
+    #             "toppings=",
+    #             "output=",
+    #             "verbose",
+    #             "username=",
+    #             "password=",
+    #             "download",
+    #             "list",
+    #             "compact",
+    #             "url=",
+    #             "source="
+    #         ]
+    #     )
+    # except getopt.GetoptError as err:
+    #     print(str(err))
+    #     sys.exit(1)
+    #
 
     # Default options
     toppings = None
@@ -112,25 +118,36 @@ if __name__ == "__main__":
     compact = False
     url = None
 
-    for o, a in opts:
-        if o in ("-t", "--toppings"):
-            toppings = a.split(",")
-        elif o in ("-o", "--output"):
-            output = open(a, "a")
-        elif o in ("-v", "--verbose"):
-            verbose = True
-        elif o in ("-c", "--compact"):
-            compact = True
-        elif o in ("-u", "--username"):
-            username = a
-        elif o in ("-p", "--password"):
-            password = a
-        elif o in ("-d", "--download"):
-            download_fresh_jar = True
-        elif o in ("-l", "--list"):
-            list_toppings = True
-        elif o in ("-s", "--url", "--source"):
-            url = a
+    args = parser.parse_args()
+
+    toppings = args.toppings
+    if args.download:
+        download_fresh_jar = True
+        target_jar = args.download
+    if args.output:
+        output = open(args.output, "a")
+
+
+    #
+    # for o, a in opts:
+    #     if o in ("-t", "--toppings"):
+    #         toppings = a.split(",")
+    #     elif o in ("-o", "--output"):
+    #         output = open(a, "a")
+    #     elif o in ("-v", "--verbose"):
+    #         verbose = True
+    #     elif o in ("-c", "--compact"):
+    #         compact = True
+    #     elif o in ("-u", "--username"):
+    #         username = a
+    #     elif o in ("-p", "--password"):
+    #         password = a
+    #     elif o in ("-d", "--download"):
+    #         download_fresh_jar = True
+    #     elif o in ("-l", "--list"):
+    #         list_toppings = True
+    #     elif o in ("-s", "--url", "--source"):
+    #         url = a
 
     # Load all toppings
     all_toppings = import_toppings()
@@ -210,12 +227,12 @@ if __name__ == "__main__":
             print("Can't resolve dependencies")
             sys.exit(1)
 
-    jarlist = args
+    jarlist = []
 
     # Should we download a new copy of the JAR directly
     # from minecraft.net?
     if download_fresh_jar:
-        client_path = Website.client_jar()
+        client_path = Website.client_jar(path="1.13.jar", version=target_jar)
         jarlist.append(client_path)
 
     # Download a JAR from the given URL
@@ -250,10 +267,10 @@ if __name__ == "__main__":
         json.dump(transform_floats(summary), output)
 
     # Cleanup temporary downloads
-    if download_fresh_jar:
-        os.remove(client_path)
-    if url:
-        os.remove(url_path)
+    # if download_fresh_jar:
+    #     os.remove(client_path)
+    # if url:
+    #     os.remove(url_path)
     # Cleanup file output (if used)
     if output is not sys.stdout:
         output.close()

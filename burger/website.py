@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-import urllib
+import urllib.request as urllib
 
 
 class Website(object):
@@ -32,7 +32,10 @@ class Website(object):
 
     @staticmethod
     def client_jar(path=None, reporthook=None, version="1.9"):
-        url = "http://s3.amazonaws.com/Minecraft.Download/versions/%s/%s.jar" % (version, version)
+        #url = "http://s3.amazonaws.com/Minecraft.Download/versions/%s/%s.jar" % (version, version)
+        # Note: https://launchermeta.mojang.com/mc/game/version_manifest.json
+        # Note: https://launchermeta.mojang.com/v1/packages/26ec75fc9a8b990fa976100a211475d18bd97de0/1.13.2.json
+        url = "https://launcher.mojang.com/v1/objects/30bfe37a8db404db11c7edf02cb5165817afb4d9/client.jar"
         #url = "http://s3.amazonaws.com/MinecraftDownload/minecraft.jar" # 1.5.2
         r = urllib.urlretrieve(url, filename=path, reporthook=reporthook)
         return r[0]
