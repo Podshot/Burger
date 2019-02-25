@@ -21,7 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-import urllib.request as urllib
+from urllib.request import urlopen
+import json
+
+
+class VersionNotFoundException(Exception):
+    pass
 
 
 class Website(object):
@@ -31,11 +36,35 @@ class Website(object):
         self.version = version
 
     @staticmethod
-    def client_jar(path=None, reporthook=None, version="1.9"):
-        #url = "http://s3.amazonaws.com/Minecraft.Download/versions/%s/%s.jar" % (version, version)
-        # Note: https://launchermeta.mojang.com/mc/game/version_manifest.json
-        # Note: https://launchermeta.mojang.com/v1/packages/26ec75fc9a8b990fa976100a211475d18bd97de0/1.13.2.json
-        url = "https://launcher.mojang.com/v1/objects/30bfe37a8db404db11c7edf02cb5165817afb4d9/client.jar"
-        #url = "http://s3.amazonaws.com/MinecraftDownload/minecraft.jar" # 1.5.2
-        r = urllib.urlretrieve(url, filename=path, reporthook=reporthook)
-        return r[0]
+    def client_jar(path: str = None, reporthook=None, version: str = "latest"):
+        versions_manifest = urlopen("https://launchermeta.mojang.com/mc/game/version_manifest.json", timeout=10)
+        manifest = json.loads(versions_manifest.read())
+        version_url = None
+
+        if version == "latest":
+            version = manifest["latest"]["release"]
+
+        for m_version in manifest["versions"]:
+            if m_version["id"] == version:
+                version_url = m_version["url"]
+                break
+        if not version_url:
+            raise VersionNotFoundException(f"Version \"{version}\" doesn't exist in the Minecraft version manifest")
+        specific_manifest = urlopen(version_url, timeout=10)
+        manifest = json.loads(specific_manifest.read())
+
+        jar_url = manifest["downloads"]["client"]["url"]
+        jar_response = urlopen(jar_url, timeout=40)
+
+        if not path:
+            path = f"{version}.jar"
+
+        with open(path, "wb") as fp:
+            fp.write(jar_response.read())
+
+        return path
+
+
+if __name__ == "__main__":
+    print(Website.client_jar(version="1.13.2"))
+    print(Website.client_jar(version="1.14.2"))
