@@ -23,8 +23,6 @@ THE SOFTWARE.
 """
 import os
 import sys
-import getopt
-import urllib
 from argparse import ArgumentParser
 
 try:
@@ -32,13 +30,18 @@ try:
 except ImportError:
     import simplejson as json
 
-from collections import deque
-
 from jawa.classloader import ClassLoader
 from jawa.transforms import simple_swap, expand_constants
 
 from burger.website import Website
 from burger.roundedfloats import transform_floats
+
+import six
+
+if six.PY3:
+    import urllib.request as urllib
+else:
+    import urllib
 
 
 def import_toppings():
@@ -80,11 +83,17 @@ def import_toppings():
 
     return toppings
 
+
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-t", "--toppings", nargs='*')
+    parser.add_argument("-t", "--toppings", action='store')
     parser.add_argument("-o", '--output', action="store")
-    parser.add_argument("-d", "--download", nargs="?")
+    parser.add_argument("-d", "--download", action="store_true")
+    parser.add_argument("-s", "--url", "--source", action="store")
+    parser.add_argument("-l", "--list", action="store_true")
+    parser.add_argument("-c", "--compact", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("version", nargs='+')
     # try:
     #     opts, args = getopt.gnu_getopt(
     #         sys.argv[1:],
@@ -117,37 +126,24 @@ if __name__ == "__main__":
     list_toppings = False
     compact = False
     url = None
+    versions = []
 
     args = parser.parse_args()
 
-    toppings = args.toppings
+    if args.toppings:
+        toppings = args.toppings.split(",")
     if args.download:
         download_fresh_jar = True
         target_jar = args.download
     if args.output:
-        output = open(args.output, "a")
+        output = open(args.output, "w")
+    if args.url:
+        url = args.url
 
-
-    #
-    # for o, a in opts:
-    #     if o in ("-t", "--toppings"):
-    #         toppings = a.split(",")
-    #     elif o in ("-o", "--output"):
-    #         output = open(a, "a")
-    #     elif o in ("-v", "--verbose"):
-    #         verbose = True
-    #     elif o in ("-c", "--compact"):
-    #         compact = True
-    #     elif o in ("-u", "--username"):
-    #         username = a
-    #     elif o in ("-p", "--password"):
-    #         password = a
-    #     elif o in ("-d", "--download"):
-    #         download_fresh_jar = True
-    #     elif o in ("-l", "--list"):
-    #         list_toppings = True
-    #     elif o in ("-s", "--url", "--source"):
-    #         url = a
+    verbose = args.verbose
+    compact = args.compact
+    list_toppings = args.list
+    versions.extend(args.version)
 
     # Load all toppings
     all_toppings = import_toppings()
@@ -173,7 +169,7 @@ if __name__ == "__main__":
                 loaded_toppings.append(all_toppings[topping])
 
     class DependencyNode:
-        def  __init__(self, topping):
+        def __init__(self, topping):
             self.topping = topping
             self.provides = topping.PROVIDES
             self.depends = topping.DEPENDS
@@ -194,7 +190,7 @@ if __name__ == "__main__":
     # Include missing dependencies
     for topping in topping_nodes:
         for dependency in topping.depends:
-            if not dependency in topping_provides:
+            if dependency not in topping_provides:
                 for other_topping in all_toppings.values():
                     if dependency in other_topping.PROVIDES:
                         topping_node = DependencyNode(other_topping)
@@ -230,10 +226,10 @@ if __name__ == "__main__":
     jarlist = []
 
     # Should we download a new copy of the JAR directly
-    # from minecraft.net?
     if download_fresh_jar:
-        client_path = Website.client_jar(path="1.13.jar", version=target_jar)
-        jarlist.append(client_path)
+        for ver in versions:
+            client_path = Website.client_jar(path=f"{ver}.jar", version=ver)
+            jarlist.append(client_path)
 
     # Download a JAR from the given URL
     if url:
@@ -261,16 +257,18 @@ if __name__ == "__main__":
 
         summary.append(aggregate)
 
+        for name, fp in six.iteritems(classloader.path_map):
+            fp.close()
+
     if not compact:
         json.dump(transform_floats(summary), output, sort_keys=True, indent=4)
     else:
         json.dump(transform_floats(summary), output)
 
     # Cleanup temporary downloads
-    # if download_fresh_jar:
-    #     os.remove(client_path)
-    # if url:
-    #     os.remove(url_path)
+    for path in jarlist:
+        os.remove(path)
+
     # Cleanup file output (if used)
     if output is not sys.stdout:
         output.close()

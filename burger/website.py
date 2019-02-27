@@ -21,8 +21,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from urllib.request import urlopen
+import six
 import json
+
+if six.PY3:
+    from urllib.request import urlopen
+else:
+    from urllib import urlopen
 
 
 class VersionNotFoundException(Exception):
@@ -36,7 +41,7 @@ class Website(object):
         self.version = version
 
     @staticmethod
-    def client_jar(path: str = None, reporthook=None, version: str = "latest"):
+    def client_jar(path = None, version = "latest"):
         versions_manifest = urlopen("https://launchermeta.mojang.com/mc/game/version_manifest.json", timeout=10)
         manifest = json.loads(versions_manifest.read())
         version_url = None
@@ -49,7 +54,9 @@ class Website(object):
                 version_url = m_version["url"]
                 break
         if not version_url:
-            raise VersionNotFoundException(f"Version \"{version}\" doesn't exist in the Minecraft version manifest")
+            raise VersionNotFoundException(
+                "Version \"{version}\" doesn't exist in the Minecraft version manifest".format(
+                    version=version))
         specific_manifest = urlopen(version_url, timeout=10)
         manifest = json.loads(specific_manifest.read())
 
@@ -57,14 +64,9 @@ class Website(object):
         jar_response = urlopen(jar_url, timeout=40)
 
         if not path:
-            path = f"{version}.jar"
+            path = "{version}.jar".format(version=version)
 
         with open(path, "wb") as fp:
             fp.write(jar_response.read())
 
         return path
-
-
-if __name__ == "__main__":
-    print(Website.client_jar(version="1.13.2"))
-    print(Website.client_jar(version="1.14.2"))
