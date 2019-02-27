@@ -86,35 +86,46 @@ def import_toppings():
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-t", "--toppings", action='store')
-    parser.add_argument("-o", '--output', action="store")
-    parser.add_argument("-d", "--download", action="store_true")
-    parser.add_argument("-s", "--url", "--source", action="store")
-    parser.add_argument("-l", "--list", action="store_true")
-    parser.add_argument("-c", "--compact", action="store_true")
-    parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("version", nargs='+')
-    # try:
-    #     opts, args = getopt.gnu_getopt(
-    #         sys.argv[1:],
-    #         "t:o:vu:p:dlcs:",
-    #         [
-    #             "toppings=",
-    #             "output=",
-    #             "verbose",
-    #             "username=",
-    #             "password=",
-    #             "download",
-    #             "list",
-    #             "compact",
-    #             "url=",
-    #             "source="
-    #         ]
-    #     )
-    # except getopt.GetoptError as err:
-    #     print(str(err))
-    #     sys.exit(1)
-    #
+    parser.add_argument(
+        "-t",
+        "--toppings",
+        action="store",
+        help="Runs the selected toppings")
+    parser.add_argument(
+        "-o",
+        "--output",
+        action="store",
+        help="Writes output to the named file instead of standard output")
+    parser.add_argument(
+        "-d",
+        "--download",
+        action="store_true",
+        help="Downloads the jar files for the specified versions")
+    parser.add_argument(
+        "-s",
+        "--url",
+        "--source",
+        action="store",
+        help="Downloads the jar file from the specified URL")
+    parser.add_argument(
+        "-l",
+        "--list",
+        action="store_true",
+        help="Lists all available toppings")
+    parser.add_argument(
+        "-c",
+        "--compact",
+        action="store_true",
+        help="Stores the output in a compact format")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Sets Burger in verbose mode")
+    parser.add_argument(
+        "version",
+        nargs='+',
+        help="The desired Minecraft version(s) to run Burger on")
 
     # Default options
     toppings = None
